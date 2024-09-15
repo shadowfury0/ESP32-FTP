@@ -1,17 +1,16 @@
 #ifndef __ESP32_FTP_CLIENT__
 #define __ESP32_FTP_CLIENT__
 
-const char QUIT[] PROGMEM = "QUIT";
-
 class ESP32_FTP {
 public:
-    ESP32_FTP();
+    ESP32_FTP(const char* username,const char* password,const char* address,unsigned int timeout);
+    ESP32_FTP(const char* username,const char* password,const char* address,unsigned int timeout,unsigned int port);
     ~ESP32_FTP();
 
     bool isConnected();
 
-    void esp32Connect(const char* username,const char* password,const char* address);
-    void esp32Quit();
+    void esp32Connect();
+    void esp32Close();
 
     void esp32Dir();
     void esp32Ls();
@@ -21,15 +20,16 @@ public:
     int  esp32Put(const char* file);
 private:
     // respone code
-    int response();
+    void response();
 
 private:
+
     const  char* username;
     const  char* password;
     const  char* address;
     unsigned int port;
+    unsigned int timeout;
     // is connected flag
-    bool  flag;
 };
 
 
