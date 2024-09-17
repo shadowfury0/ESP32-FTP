@@ -3,8 +3,8 @@
 
 class ESP32_FTP {
 public:
-    ESP32_FTP(const char* username,const char* password,const char* address,unsigned int timeout);
-    ESP32_FTP(const char* username,const char* password,const char* address,unsigned int timeout,unsigned int port);
+    ESP32_FTP(const String& username,const String& password,const String& address,unsigned int timeout);
+    ESP32_FTP(const String& username,const String& password,const String& address,unsigned int timeout,unsigned int port);
     ~ESP32_FTP();
 
     bool isConnected();
@@ -19,16 +19,19 @@ public:
     int  esp32Get(const char* file);
     int  esp32Put(const char* file);
 private:
+    // enter passive mode
+    void passiveEnter();
+    void passiveClose();
     // respone code
     void response();
 
 private:
-
-    const  char* username;
-    const  char* password;
-    const  char* address;
-    unsigned int port;
     unsigned int timeout;
+    unsigned int port;
+
+    String username;
+    String password;
+    String address;
     // is connected flag
 };
 
