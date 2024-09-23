@@ -19,8 +19,10 @@ public:
     int  esp32Get(const char* file);
     int  esp32Put(const char* file);
 private:
-    // enter passive mode
-    void passiveEnter();
+    // enter passive mode 0 sucess 1 error
+    int passiveEnter();
+    // put receive string into
+    void passiveRev(String& recv);
     void passiveClose();
     // respone code
     void response();

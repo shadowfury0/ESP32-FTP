@@ -54,8 +54,18 @@ void ESP32_FTP::esp32Close() {
 
 
 void ESP32_FTP::esp32Dir() {
+    // connect error
+    if (passiveEnter()) {
+        return;
+    }
     client.println(F("LIST"));
-    response();
+    //receive and print data
+    String recv;
+    while (dclient.connected()) {
+        passiveRev(recv);
+        Serial.println(recv);
+    }
+    passiveClose();
 }
 
 void ESP32_FTP::esp32Ls() {
@@ -112,9 +122,27 @@ void ESP32_FTP::passiveEnter() {
 
     if(!dclient.connect(host, dp, timeout)) {
         Serial.println("Fail to connect FTP Data server ");
-        return;
+        return 1;
     }
 
+    unsigned long n = millis();
+
+    while ( !dclient.available() && millis() < n + timeout ) {
+        delay(10);
+    }
+    // connect error
+    if (!dclient.available()) {
+        Serial.println("passive  error ");
+        return 1;
+    }
+
+    return 0;
+}
+
+void ESP32_FTP::passiveRev(String& recv) {
+    // if (dclient.available()) {
+    recv = dclient.readStringUntil('\n');
+    // }
 }
 
 void ESP32_FTP::passiveClose() {
@@ -133,7 +161,6 @@ void ESP32_FTP::response() {
         Serial.println("ftp server out of time ");
     }
     else {
-        String response = client.readStringUntil('\n');
-        Serial.println(response);
+        Serial.println(client.readStringUntil('\n'));
     }
 }
