@@ -25,7 +25,7 @@ ESP32_FTP::~ESP32_FTP() {
 }
 
 void ESP32_FTP::esp32Connect() {
-    if(!client.connect(address, port, timeout)) {
+    if(!client.connect(address.c_str(), port, timeout)) {
         Serial.println("Fail to connect FTP server ");
         return;
     }
@@ -38,7 +38,6 @@ void ESP32_FTP::esp32Connect() {
 
     client.print(F("PASS "));
     client.println(password);
-    delay(1000);
     response();
 }
 
@@ -49,22 +48,26 @@ void ESP32_FTP::esp32Close() {
     response();
     
     client.stop();
-    Serial.println("Disconnected from FTP server");
+    Serial.println("FTP server Close");
 }
-
 
 void ESP32_FTP::esp32Dir() {
     // connect error
     if (passiveEnter()) {
         return;
     }
+    
     client.println(F("LIST"));
+    delay(timeout);
+    response();
+
+
     //receive and print data
-    String recv;
-    while (dclient.connected()) {
+    // do  {
         passiveRev(recv);
-        Serial.println(recv);
-    }
+    // }
+    // while (dclient.connected());
+
     passiveClose();
 }
 
@@ -91,16 +94,24 @@ int  ESP32_FTP::esp32Put(const char* file) {
 
 }
 
-void ESP32_FTP::passiveEnter() {
+int ESP32_FTP::passiveEnter() {
+
+    response();
+
     client.println(F("PASV"));
-    delay(1000);
+    
+    // waiting
+    while ( !client.available()) {
+        delay(1000);
+    }
+
     String pr = client.readStringUntil('\n');
     Serial.println(pr);
 
 // -----------------------------------------
     // need change here
-    int s = pasvResponse.indexOf('(') + 1;
-    int e = pasvResponse.indexOf(')');
+    int s = pr.indexOf('(') + 1;
+    int e = pr.indexOf(')');
     String pd = pr.substring(s, e);
 
     int h1 = pd.indexOf(',');
@@ -108,31 +119,20 @@ void ESP32_FTP::passiveEnter() {
     int h3 = pd.indexOf(',', h2 + 1);
     int h4 = pd.indexOf(',', h3 + 1);
     int p1 = pd.indexOf(',', h4 + 1);
-    int p2 = pd.indexOf(',', p5 + 1);
+    int p2 = pd.indexOf(',', p1 + 1);
 // -----------------------------------------
 
-    String host =  pd.substring(0, h1) + "." +
-                   pd.substring(h1 + 1, h2) + "." +
-                   pd.substring(h2 + 1, h3) + "." +
-                   pd.substring(h3 + 1, h4);
+    // String host =  pd.substring(0, h1) + "." +
+    //                pd.substring(h1 + 1, h2) + "." +
+    //                pd.substring(h2 + 1, h3) + "." +
+    //                pd.substring(h3 + 1, h4);
 
     int dp = (pd.substring(h4 + 1, p1).toInt() * 256) + pd.substring(p1 + 1, p2).toInt();
 
     // establish connection
 
-    if(!dclient.connect(host, dp, timeout)) {
+    if(!dclient.connect(address.c_str(), dp, timeout)) {
         Serial.println("Fail to connect FTP Data server ");
-        return 1;
-    }
-
-    unsigned long n = millis();
-
-    while ( !dclient.available() && millis() < n + timeout ) {
-        delay(10);
-    }
-    // connect error
-    if (!dclient.available()) {
-        Serial.println("passive  error ");
         return 1;
     }
 
@@ -140,27 +140,36 @@ void ESP32_FTP::passiveEnter() {
 }
 
 void ESP32_FTP::passiveRev(String& recv) {
-    // if (dclient.available()) {
-    recv = dclient.readStringUntil('\n');
+    // waiting
+    // while (!dclient.available()) {
+    //     delay(100);
     // }
+    // String r;
+    // r = dclient.readStringUntil('\n');
+    // Serial.println(r);
+    while (dclient.connected()) {
+        while (dclient.available()) {
+            String line = dclient.readStringUntil('\n');
+            Serial.println(line);
+        }
+    }
 }
 
 void ESP32_FTP::passiveClose() {
-    dclient.close();
+    dclient.stop();
+    Serial.println("Ftp data Server close");
     response();
 }
 
 void ESP32_FTP::response() {
     unsigned long n = millis();
-    // connect error
+    // wait connection 
     while ( !client.available() && millis() < n + timeout ) {
-        delay(10);
+        delay(100);
     }
-
-    if (!client.available()) {
-        Serial.println("ftp server out of time ");
-    }
-    else {
+  
+    // transfer maybe out of time read the last package
+    while (client.available()) {
         Serial.println(client.readStringUntil('\n'));
     }
 }
