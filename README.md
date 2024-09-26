@@ -13,3 +13,5 @@
     const char* password;
     const char* address;
 ```
+
+* Note that in PASV mode, it is necessary to immediately connect to receive data

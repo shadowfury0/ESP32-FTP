@@ -29,15 +29,13 @@ void ESP32_FTP::esp32Connect() {
         Serial.println("Fail to connect FTP server ");
         return;
     }
-
-    response();
-
     client.print(F("USER "));
     client.println(username);
-    response();
 
     client.print(F("PASS "));
     client.println(password);
+
+    waiting();
     response();
 }
 
@@ -45,6 +43,7 @@ void ESP32_FTP::esp32Close() {
     client.println(F("QUIT"));
     delay(1000);
 
+    waiting();
     response();
     
     client.stop();
@@ -52,58 +51,144 @@ void ESP32_FTP::esp32Close() {
 }
 
 void ESP32_FTP::esp32Dir() {
+    esp32Ls();
+}
+
+void ESP32_FTP::esp32Ls() {
+    waiting();
+    response();
     // connect error
     if (passiveEnter()) {
+        Serial.println("Max retries reached, aborting connection in esp32Ls function");
         return;
     }
     
     client.println(F("LIST"));
-    delay(timeout);
-    response();
+    // Serial.println(client.readStringUntil('\n'));
 
-
-    //receive and print data
-    // do  {
-        passiveRev(recv);
-    // }
-    // while (dclient.connected());
-
+    passiveRev();
     passiveClose();
-}
-
-void ESP32_FTP::esp32Ls() {
-    esp32Dir();
 }
 
 void ESP32_FTP::esp32Pwd() {
     client.println(F("PWD"));
+    waiting();
     response();
 }
 
-int  ESP32_FTP::esp32Cd(const char* dir) {
+void  ESP32_FTP::esp32Cd(const char* dir) {
     client.print(F("CWD"));
     client.println(dir);
+    waiting();
     response();
 }
 
-int  ESP32_FTP::esp32Get(const char* file) {
+void  ESP32_FTP::esp32Get(const char* file) {
+    waiting();
+    response();
+    // connect error
+    if (passiveEnter()) {
+        Serial.println("Max retries reached, aborting connection in esp32Get function");
+        return;
+    }
 
+    client.print(F("RETR "));
+    client.println(file);
+
+    // String response = client.readStringUntil('\n');
+    // Serial.println(response);
+
+    // if (!response.startsWith("150")) {
+    //     Serial.println("Failed to get file download");
+    //     return;
+    // }
+    passiveRev();
+    passiveClose();
 }
 
-int  ESP32_FTP::esp32Put(const char* file) {
+void  ESP32_FTP::esp32Put(const char* file,const char* data) {
+    waiting();
+    response();
+    if (passiveEnter()) {
+        Serial.println("Max retries reached, aborting connection in esp32Put function");
+        return;
+    }
 
+    client.print(F("STOR "));
+    client.println(file);
+    
+    // String response = client.readStringUntil('\n');
+    // Serial.println(response);
+
+    // if (!response.startsWith("150")) {
+    //     Serial.println("Failed to start file upload");
+    //     return;
+    // }   
+
+    dclient.print(data);
+    passiveClose();
+
+    Serial.println("File upload completed");
 }
+
+void  ESP32_FTP::esp32Put(const char* file,String data) {
+    waiting();
+    response();
+    if (passiveEnter()) {
+        Serial.println("Max retries reached, aborting connection in esp32Put function");
+        return;
+    }
+
+    client.print(F("STOR "));
+    client.println(file);
+
+    // String response = client.readStringUntil('\n');
+    // Serial.println(response);
+
+    dclient.print(data);
+
+    passiveClose();
+    Serial.println("File upload completed");
+}
+
+void  ESP32_FTP::esp32Append(const char* file,const char* data) {
+    waiting();
+    response();
+    if (passiveEnter()) {
+        Serial.println("Max retries reached, aborting connection in esp32Append function");
+        return;
+    }
+
+    client.print(F("APPE "));
+    client.println(file);
+
+    dclient.print(data);
+
+    passiveClose();
+    Serial.println("File Append completed");
+}
+
+void ESP32_FTP::esp32Append(const char* file,String data) {
+    waiting();
+    response();
+    if (passiveEnter()) {
+        Serial.println("Max retries reached, aborting connection in esp32Append function");
+        return;
+    }
+
+    client.print(F("APPE "));
+    client.println(file);
+
+    dclient.print(data);
+
+    passiveClose();
+    Serial.println("File Append completed");
+}
+
 
 int ESP32_FTP::passiveEnter() {
 
-    response();
-
     client.println(F("PASV"));
-    
-    // waiting
-    while ( !client.available()) {
-        delay(1000);
-    }
 
     String pr = client.readStringUntil('\n');
     Serial.println(pr);
@@ -120,33 +205,25 @@ int ESP32_FTP::passiveEnter() {
     int h4 = pd.indexOf(',', h3 + 1);
     int p1 = pd.indexOf(',', h4 + 1);
     int p2 = pd.indexOf(',', p1 + 1);
-// -----------------------------------------
-
-    // String host =  pd.substring(0, h1) + "." +
-    //                pd.substring(h1 + 1, h2) + "." +
-    //                pd.substring(h2 + 1, h3) + "." +
-    //                pd.substring(h3 + 1, h4);
 
     int dp = (pd.substring(h4 + 1, p1).toInt() * 256) + pd.substring(p1 + 1, p2).toInt();
 
+    int rc = 0;  // retry counter
     // establish connection
+    // connect until it work
+    while(!dclient.connect(address.c_str(), dp, timeout)) {
+        delay(100);
 
-    if(!dclient.connect(address.c_str(), dp, timeout)) {
-        Serial.println("Fail to connect FTP Data server ");
-        return 1;
+        if (++rc > MAX_RETRIES) {
+            return 1;
+        }
     }
 
     return 0;
 }
 
-void ESP32_FTP::passiveRev(String& recv) {
+void ESP32_FTP::passiveRev() {
     // waiting
-    // while (!dclient.available()) {
-    //     delay(100);
-    // }
-    // String r;
-    // r = dclient.readStringUntil('\n');
-    // Serial.println(r);
     while (dclient.connected()) {
         while (dclient.available()) {
             String line = dclient.readStringUntil('\n');
@@ -158,16 +235,16 @@ void ESP32_FTP::passiveRev(String& recv) {
 void ESP32_FTP::passiveClose() {
     dclient.stop();
     Serial.println("Ftp data Server close");
-    response();
+}
+
+void ESP32_FTP::waiting() {
+    // wait connection 
+    while (!client.available()) {
+        delay(100);
+    }
 }
 
 void ESP32_FTP::response() {
-    unsigned long n = millis();
-    // wait connection 
-    while ( !client.available() && millis() < n + timeout ) {
-        delay(100);
-    }
-  
     // transfer maybe out of time read the last package
     while (client.available()) {
         Serial.println(client.readStringUntil('\n'));
