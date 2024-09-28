@@ -77,7 +77,7 @@ void ESP32_FTP::esp32Pwd() {
 }
 
 void  ESP32_FTP::esp32Cd(const char* dir) {
-    client.print(F("CWD"));
+    client.print(F("CWD "));
     client.println(dir);
     waiting();
     response();
@@ -249,4 +249,44 @@ void ESP32_FTP::response() {
     while (client.available()) {
         Serial.println(client.readStringUntil('\n'));
     }
+}
+
+void ESP32_FTP::esp32Delete(const char* file) {
+    client.print(F("DELE "));
+    client.println(file);
+    waiting();
+    response();
+}
+
+void ESP32_FTP::esp32MDir(const char* dir) {
+    client.print(F("MKD "));
+    client.println(dir);
+    waiting();
+    response();
+}
+
+void ESP32_FTP::esp32RDir(const char* dir) {
+    client.print(F("RMD "));
+    client.println(dir);
+    waiting();
+    response();
+}
+
+void ESP32_FTP::esp32RDirT(const char* dir) {
+    client.print(F("RMDA "));
+    client.println(dir);
+    waiting();
+    response();
+} 
+
+void ESP32_FTP::SystemType() {
+    client.print(F("SYST"));
+    waiting();
+    response();
+}
+
+void ESP32_FTP::SystemState() {
+    client.print(F("STAT"));
+    waiting();
+    response();
 }

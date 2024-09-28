@@ -14,6 +14,9 @@ public:
     void esp32Connect();
     void esp32Close();
 
+    void SystemType();
+    void SystemState();
+
     void esp32Dir();
     void esp32Ls();
     void esp32Pwd();
@@ -23,6 +26,14 @@ public:
     void esp32Put(const char* file,String data);
     void esp32Append(const char* file,const char* data);
     void esp32Append(const char* file,String data);
+
+    void esp32Delete(const char* file);
+
+    void esp32MDir(const char* dir);
+    void esp32RDir(const char* dir);
+    // force remove directory Tree
+    void esp32RDirT(const char* dir);
+
 private:
     // enter passive mode 0 sucess 1 error
     int passiveEnter();
