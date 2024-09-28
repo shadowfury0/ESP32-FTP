@@ -9,8 +9,6 @@ public:
     ESP32_FTP(const String& username,const String& password,const String& address,unsigned int timeout,unsigned int port);
     ~ESP32_FTP();
 
-    bool isConnected();
-
     void esp32Connect();
     void esp32Close();
 
