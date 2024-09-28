@@ -280,13 +280,13 @@ void ESP32_FTP::esp32RDirT(const char* dir) {
 } 
 
 void ESP32_FTP::SystemType() {
-    client.print(F("SYST"));
+    client.println(F("SYST"));
     waiting();
     response();
 }
 
 void ESP32_FTP::SystemState() {
-    client.print(F("STAT"));
+    client.println(F("STAT"));
     waiting();
     response();
 }
