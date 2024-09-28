@@ -13,6 +13,7 @@ ESP32_FTP ftp("username","password","address",timeout，port);
 * end with esp32Close() to release instance
 
 ### API Function
+include "esp32_ftp.h"
 ```
 esp32Dir();
 esp32Ls();
